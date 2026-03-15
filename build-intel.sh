@@ -173,7 +173,6 @@ cat > "${BUILD_PROJECT}/package.json" <<EOF
   "version": "1.0.0",
   "dependencies": {
     "@openai/codex": "latest",
-    "@openai/codex-darwin-x64": "latest",
     "better-sqlite3": "${BS_VERSION}",
     "electron": "${ELECTRON_VERSION}",
     "node-pty": "${NP_VERSION}"
@@ -186,7 +185,8 @@ EOF
 
 (
   cd "${BUILD_PROJECT}"
-  npm install --no-audit --no-fund
+  # Force x64 architecture for all dependencies to ensure we get Intel binaries/CLI
+  npm install --no-audit --no-fund --os=darwin --cpu=x64
 )
 
 # Use Electron x64 app template as the destination runtime.
