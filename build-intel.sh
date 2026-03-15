@@ -173,6 +173,7 @@ cat > "${BUILD_PROJECT}/package.json" <<EOF
   "version": "1.0.0",
   "dependencies": {
     "@openai/codex": "latest",
+    "@openai/codex-darwin-x64": "latest",
     "better-sqlite3": "${BS_VERSION}",
     "electron": "${ELECTRON_VERSION}",
     "node-pty": "${NP_VERSION}"
