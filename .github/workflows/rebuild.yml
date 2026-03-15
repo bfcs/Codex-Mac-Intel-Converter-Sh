@@ -20,36 +20,38 @@ jobs:
 
       - name: Download Codex DMG
         run: |
-          # The user mentioned openai/codex releases, but the official desktop app DMG 
-          # is actually hosted at the URL used by the CLI.
-          # We'll try to find it in releases first as requested, then fallback to the official URL.
-          
-          echo "Attempting to download from GitHub releases..."
-          if gh release download --repo openai/codex --pattern 'Codex.dmg' --output Codex.dmg --clobber 2>/dev/null; then
-            echo "Downloaded Codex.dmg from GitHub releases."
-          else
-            echo "Codex.dmg not found in GitHub releases. Downloading from official static URL..."
-            curl -L "https://persistent.oaistatic.com/codex-app-prod/Codex.dmg" -o Codex.dmg
-          fi
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          echo "Downloading official Codex Desktop DMG..."
+          curl -L "https://persistent.oaistatic.com/codex-app-prod/Codex.dmg" -o Codex.dmg
+
+      - name: Extract Version
+        id: get_version
+        run: |
+          mkdir -p vmount
+          hdiutil attach -readonly -nobrowse -mountpoint vmount Codex.dmg
+          # 提取 App 的版本号
+          VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "vmount/Codex.app/Contents/Info.plist")
+          echo "Detected Codex Version: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          hdiutil detach vmount
 
       - name: Run rebuild script
         run: |
           chmod +x ./build-intel.sh
           ./build-intel.sh Codex.dmg
+          # 重命名输出文件以包含版本号
+          mv CodexAppMacIntel.dmg "Codex-v${{ steps.get_version.outputs.version }}-Intel.dmg"
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
-        if: success()
         with:
           files: |
-            CodexAppMacIntel.dmg
+            Codex-v${{ steps.get_version.outputs.version }}-Intel.dmg
             log.txt
-          tag_name: rebuild-${{ github.run_id }}
-          name: Rebuild Intel Version (${{ github.run_id }})
+          tag_name: "v${{ steps.get_version.outputs.version }}-intel"
+          name: "Codex v${{ steps.get_version.outputs.version }} (Intel Mac)"
           body: |
-            Automatically rebuilt from official Codex DMG.
-            Run ID: ${{ github.run_id }}
+            Rebuilt for Intel Mac.
+            Source: https://persistent.oaistatic.com/codex-app-prod/Codex.dmg
+            Version: ${{ steps.get_version.outputs.version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
