@@ -186,6 +186,8 @@ EOF
 (
   cd "${BUILD_PROJECT}"
   # Force x64 architecture for all dependencies to ensure we get Intel binaries/CLI
+  # Also set npm_config_arch to ensure Electron and other tools download the right binaries
+  export npm_config_arch=x64
   npm install --no-audit --no-fund --os=darwin --cpu=x64
 )
 
