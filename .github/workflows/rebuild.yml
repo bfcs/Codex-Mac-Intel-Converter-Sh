@@ -1,0 +1,45 @@
+name: Rebuild Intel DMG
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Download latest Codex DMG
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release download --repo openai/codex --pattern 'codex-aarch64-apple-darwin.dmg' --output Codex.dmg --clobber
+
+      - name: Run rebuild script
+        run: |
+          chmod +x ./build-intel.sh
+          # The script might fail due to various reasons, so we'll capture output
+          ./build-intel.sh Codex.dmg
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            CodexAppMacIntel.dmg
+            log.txt
+          tag_name: rebuild-${{ github.run_id }}
+          name: Rebuild Intel Version (${{ github.run_id }})
+          body: |
+            Automatically rebuilt from openai/codex latest release.
+            Run ID: ${{ github.run_id }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
