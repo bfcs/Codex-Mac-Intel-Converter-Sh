@@ -18,25 +18,24 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Download latest Codex DMG
+      - name: Download Codex DMG
+        run: |
+          # The user mentioned openai/codex releases, but the official desktop app DMG 
+          # is actually hosted at the URL used by the CLI.
+          # We'll try to find it in releases first as requested, then fallback to the official URL.
+          
+          echo "Attempting to download from GitHub releases..."
+          if gh release download --repo openai/codex --pattern 'Codex.dmg' --output Codex.dmg --clobber 2>/dev/null; then
+            echo "Downloaded Codex.dmg from GitHub releases."
+          else
+            echo "Codex.dmg not found in GitHub releases. Downloading from official static URL..."
+            curl -L "https://persistent.oaistatic.com/codex-app-prod/Codex.dmg" -o Codex.dmg
+          fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release download --repo openai/codex --pattern 'codex-aarch64-apple-darwin.dmg' --output Codex.dmg --clobber
-
-      - name: Inspect DMG
-        run: |
-          mkdir -p mount
-          hdiutil attach -readonly -nobrowse -mountpoint mount Codex.dmg
-          echo "Contents of DMG:"
-          ls -R mount
-          hdiutil detach mount
 
       - name: Run rebuild script
         run: |
-          # The script expects Codex.app. If the name is different, we might need to symlink or rename.
-          # But first let's see the inspection output.
-          # I'll also modify the script locally if needed, or just pass the right path.
           chmod +x ./build-intel.sh
           ./build-intel.sh Codex.dmg
 
@@ -50,7 +49,7 @@ jobs:
           tag_name: rebuild-${{ github.run_id }}
           name: Rebuild Intel Version (${{ github.run_id }})
           body: |
-            Automatically rebuilt from openai/codex latest release.
+            Automatically rebuilt from official Codex DMG.
             Run ID: ${{ github.run_id }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
